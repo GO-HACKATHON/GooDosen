@@ -2,14 +2,17 @@ package id.ranuwp.greetink.goodosen;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.support.annotation.NonNull;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,8 +22,6 @@ import android.widget.TextView;
 import com.arlib.floatingsearchview.FloatingSearchView;
 import com.arlib.floatingsearchview.suggestions.SearchSuggestionsAdapter;
 import com.arlib.floatingsearchview.suggestions.model.SearchSuggestion;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.Query;
@@ -31,11 +32,9 @@ import com.squareup.picasso.Picasso;
 import java.util.ArrayList;
 
 import devlight.io.library.ntb.NavigationTabBar;
-import id.ranuwp.greetink.goodosen.adapter.ChatAdapter;
 import id.ranuwp.greetink.goodosen.adapter.UserAdapter;
 import id.ranuwp.greetink.goodosen.model.Constant;
 import id.ranuwp.greetink.goodosen.model.User;
-import id.ranuwp.greetink.goodosen.model.Chat;
 import id.ranuwp.greetink.goodosen.model.helper.FirebaseUserHelper;
 import id.ranuwp.greetink.goodosen.model.helper.UserSuggestion;
 
@@ -50,29 +49,51 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseUserHelper firebaseUserHelper;
     private ArrayList<NavigationTabBar.Model> models;
     private ArrayList<User> users;
-    private ArrayList<Chat> chats;
     private UserAdapter userAdapter;
-    private ChatAdapter chatAdapter;
     private String id;
+    private final LocationListener locationListener = new LocationListener() {
+        @Override
+        public void onLocationChanged(Location location) {
+            firebaseUserHelper.getDatabaseReference().child("users/" + id + "last_location/lat").setValue(location.getLatitude());
+            firebaseUserHelper.getDatabaseReference().child("users/" + id + "last_location/long").setValue(location.getLongitude());
+        }
+
+        @Override
+        public void onStatusChanged(String s, int i, Bundle bundle) {
+
+        }
+
+        @Override
+        public void onProviderEnabled(String s) {
+
+        }
+
+        @Override
+        public void onProviderDisabled(String s) {
+
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         firebaseUserHelper = new FirebaseUserHelper();
-        firebaseUserHelper.setAuthStateListener(new FirebaseAuth.AuthStateListener() {
-            @Override
-            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                FirebaseUser firebaseUser = firebaseAuth.getCurrentUser();
-                if(firebaseUser == null){
-                    firebaseUserHelper.signOut();
-                    LoginActivity.toLoginActivity(MainActivity.this);
-                    finish();
-                }
-            }
-        });
-        id = Constant.getSharedPreference(this).getString("id","");
+        if (!firebaseUserHelper.isLogin()) {
+            LoginActivity.toLoginActivity(this);
+            finish();
+        }
+        id = Constant.getSharedPreference(MainActivity.this).getString("id", "");
+        locationTracker();
         setContentView(R.layout.activity_main);
         viewSetup();
+    }
+
+    private void locationTracker() {
+        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 50, locationListener);
     }
 
     private void viewSetup() {
@@ -313,7 +334,7 @@ public class MainActivity extends AppCompatActivity {
                             public void onBindSuggestion(View suggestionView, ImageView leftIcon, TextView textView, SearchSuggestion item, int itemPosition) {
                                 UserSuggestion userSuggestion = (UserSuggestion) item;
                                 User user = userSuggestion.getUser();
-                                textView.setText(user.getName()+"\n\n"+user.getFrom());
+                                textView.setText(user.getName()+"\n"+user.getFrom());
                                 Picasso.with(getApplicationContext())
                                         .load(user.getImage_url())
                                         .placeholder(R.drawable.loading_placeholder)

@@ -93,17 +93,16 @@ public class LoginActivity extends AppCompatActivity {
                                     firebaseUserHelper.getFirebaseAuth().signInWithCredential(credential).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
                                         @Override
                                         public void onComplete(@NonNull Task<AuthResult> task) {
-                                            if(task.isSuccessful()){
+                                            if(!task.isSuccessful()){
                                                 try {
                                                     String id = objects.getString("id");
                                                     String name = objects.getString("name");
                                                     String image_url = "https://graph.facebook.com/"+id+"/picture?type=large";
                                                     Map<String,String> user = new HashMap<>();
                                                     user.put("name",name);
-                                                    user.put("image_url",image_url);
                                                     user.put("from","Universitas Diponegoro");
+                                                    user.put("image_url",image_url);
                                                     firebaseUserHelper.getDatabaseReference().child("users").child(id).setValue(user);
-                                                    firebaseUserHelper.getDatabaseReference().child("makan").setValue("Ayok");
                                                     Constant.getSharedPreference(getApplicationContext())
                                                             .edit()
                                                             .putString("id",id)
@@ -114,7 +113,9 @@ public class LoginActivity extends AppCompatActivity {
                                                     e.printStackTrace();
                                                 }
                                             }else{
-                                                Log.d("RWP","RWP");
+                                                Toast.makeText(getApplicationContext(),"Failed to Login",Toast.LENGTH_SHORT).show();
+                                                progressbar.setVisibility(View.GONE);
+                                                facebook_loginbutton.setVisibility(View.VISIBLE);
                                             }
                                         }
                                     });
@@ -128,7 +129,6 @@ public class LoginActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(),"Canceled",Toast.LENGTH_SHORT).show();
                 progressbar.setVisibility(View.GONE);
                 facebook_loginbutton.setVisibility(View.VISIBLE);
-
             }
 
             @Override

@@ -1,5 +1,6 @@
 package id.ranuwp.greetink.goodosen.model.helper;
 
+import com.facebook.AccessToken;
 import com.facebook.login.LoginManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -33,12 +34,12 @@ public class FirebaseUserHelper {
     }
 
     public boolean isLogin(){
-        return firebaseAuth.getCurrentUser() != null;
+        return AccessToken.getCurrentAccessToken() != null;
     }
 
     public void signOut(){
-        LoginManager.getInstance().logOut();
         firebaseAuth.signOut();
+        LoginManager.getInstance().logOut();
     }
 
     public FirebaseAuth getFirebaseAuth() {
@@ -68,11 +69,12 @@ public class FirebaseUserHelper {
         return storageReference.child("user/"+firebaseUser.getUid());
     }
 
-    public FirebaseAuth.AuthStateListener getAuthStateListener() {
-        return authStateListener;
+    public void addAuthStateListener(FirebaseAuth.AuthStateListener authStateListener) {
+        this.authStateListener = authStateListener;
+        firebaseAuth.addAuthStateListener(authStateListener);
     }
 
-    public void setAuthStateListener(FirebaseAuth.AuthStateListener authStateListener) {
-        this.authStateListener = authStateListener;
+    public void removeAuthListener() {
+        firebaseAuth.removeAuthStateListener(authStateListener);
     }
 }

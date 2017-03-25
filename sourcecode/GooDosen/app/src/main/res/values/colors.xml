@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#3F51B5</color>
-    <color name="colorPrimaryDark">#303F9F</color>
-    <color name="colorAccent">#FF4081</color>
+    <color name="colorPrimary">#8d22ff</color>
+    <color name="colorPrimaryDark">#6312b9</color>
+    <color name="colorAccent">#e0c3ff</color>
+
+    <color name="selected_color">#712bbc</color>
+    <color name="inactive_color">#d2a7ff</color>
+
+    <color name="badge_color">#de292c</color>
+
+    <color name="done_color">#64b691</color>
+
+    <color name="softGrey">#707070</color>
 </resources>

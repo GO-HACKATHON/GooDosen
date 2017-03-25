@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "453934238411",
+    "firebase_url": "https://goodosen-69534.firebaseio.com",
+    "project_id": "goodosen-69534",
+    "storage_bucket": "goodosen-69534.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:453934238411:android:f4fea7ef313bd466",
+        "android_client_info": {
+          "package_name": "id.ranuwp.greetink.goodosen"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "453934238411-ldqi73h3jdq5ols5dig0vfid2lj4ukb0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "id.ranuwp.greetink.goodosen",
+            "certificate_hash": "8b62990284203d4f7f77e321d66ab734d8166aff"
+          }
+        },
+        {
+          "client_id": "453934238411-rvv8votufo2tm2c0gd3gl47fm311g78k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC1PS9bFpBxFUMNiHePCRQ54exkF9x0Uis"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "453934238411-rvv8votufo2tm2c0gd3gl47fm311g78k.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

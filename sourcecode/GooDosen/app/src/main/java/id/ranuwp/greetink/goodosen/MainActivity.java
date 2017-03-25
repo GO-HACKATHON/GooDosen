@@ -48,7 +48,8 @@ public class MainActivity extends AppCompatActivity {
     //var
     private FirebaseUserHelper firebaseUserHelper;
     private ArrayList<NavigationTabBar.Model> models;
-    private ArrayList<User> users;
+    private ArrayList<User> followersUser;
+    private ArrayList<User> followingUser;
     private UserAdapter userAdapter;
     private String id;
     private final LocationListener locationListener = new LocationListener() {
@@ -185,14 +186,14 @@ public class MainActivity extends AppCompatActivity {
                         RecyclerView followers_recyclerview = (RecyclerView) view.findViewById(R.id.followers_recyclerview);
                         LinearLayoutManager followersLinearLayoutManager = new LinearLayoutManager(getApplicationContext());
                         followers_recyclerview.setLayoutManager(followersLinearLayoutManager);
-                        users = new ArrayList<>();
-                        userAdapter = new UserAdapter(MainActivity.this, users);
+                        followersUser = new ArrayList<>();
+                        userAdapter = new UserAdapter(MainActivity.this, followersUser);
                         firebaseUserHelper.getDatabaseReference()
                                 .child("users/"+id+"/followers")
                                 .addValueEventListener(new ValueEventListener() {
                                     @Override
                                     public void onDataChange(DataSnapshot dataSnapshot) {
-                                        users.clear();
+                                        followersUser.clear();
                                         for(final DataSnapshot data : dataSnapshot.getChildren()){
                                             final User user = new User();
                                             user.setId(data.getKey());
@@ -204,7 +205,9 @@ public class MainActivity extends AppCompatActivity {
                                                             user.setFrom(dataSnapshot.child("from").getValue().toString());
                                                             user.setImage_url(dataSnapshot.child("image_url").getValue().toString());
                                                             user.setFollow(dataSnapshot.child("followings").child(id).exists());
-                                                            users.add(user);
+                                                            followersUser.add(user);
+                                                            models.get(position).setBadgeTitle(String.valueOf(followersUser.size()));
+                                                            models.get(position).showBadge();
                                                             userAdapter.notifyDataSetChanged();
                                                         }
 
@@ -214,8 +217,6 @@ public class MainActivity extends AppCompatActivity {
                                                         }
                                                     });
                                         }
-                                        models.get(position).setBadgeTitle(String.valueOf(users.size()));
-                                        models.get(position).showBadge();
                                         userAdapter.notifyDataSetChanged();
                                     }
 
@@ -235,14 +236,14 @@ public class MainActivity extends AppCompatActivity {
                         RecyclerView following_recyclerview = (RecyclerView) view.findViewById(R.id.following_recyclerview);
                         LinearLayoutManager followingLinearLayoutManager = new LinearLayoutManager(getApplicationContext());
                         following_recyclerview.setLayoutManager(followingLinearLayoutManager);
-                        users = new ArrayList<>();
-                        userAdapter = new UserAdapter(MainActivity.this, users);
+                        followingUser = new ArrayList<>();
+                        userAdapter = new UserAdapter(MainActivity.this, followingUser);
                         firebaseUserHelper.getDatabaseReference()
                                 .child("users/"+id+"/followings")
                                 .addValueEventListener(new ValueEventListener() {
                                     @Override
                                     public void onDataChange(DataSnapshot dataSnapshot) {
-                                        users.clear();
+                                        followingUser.clear();
                                         for(final DataSnapshot data : dataSnapshot.getChildren()){
                                             final User user = new User();
                                             user.setId(data.getKey());
@@ -254,7 +255,9 @@ public class MainActivity extends AppCompatActivity {
                                                             user.setFrom(dataSnapshot.child("from").getValue().toString());
                                                             user.setFollow(dataSnapshot.child("followers").child(id).exists());
                                                             user.setImage_url(dataSnapshot.child("image_url").getValue().toString());
-                                                            users.add(user);
+                                                            followingUser.add(user);
+                                                            models.get(position).setBadgeTitle(String.valueOf(followingUser.size()));
+                                                            models.get(position).showBadge();
                                                             userAdapter.notifyDataSetChanged();
                                                         }
 
@@ -265,8 +268,7 @@ public class MainActivity extends AppCompatActivity {
                                                     });
 
                                         }
-                                        models.get(position).setBadgeTitle(String.valueOf(users.size()));
-                                        models.get(position).showBadge();
+                                        notifyDataSetChanged();
                                     }
 
                                     @Override

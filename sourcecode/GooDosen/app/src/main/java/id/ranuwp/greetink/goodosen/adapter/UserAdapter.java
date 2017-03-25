@@ -1,6 +1,7 @@
 package id.ranuwp.greetink.goodosen.adapter;
 
 import android.content.Context;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,6 +14,7 @@ import java.util.List;
 
 import id.ranuwp.greetink.goodosen.R;
 import id.ranuwp.greetink.goodosen.UserDetailActivity;
+import id.ranuwp.greetink.goodosen.model.Constant;
 import id.ranuwp.greetink.goodosen.model.User;
 import id.ranuwp.greetink.goodosen.model.helper.FirebaseUserHelper;
 import id.ranuwp.greetink.goodosen.viewholder.UserViewHolder;
@@ -68,28 +70,28 @@ public class UserAdapter extends RecyclerView.Adapter<UserViewHolder> implements
     public void onClick(View view) {
         int id = view.getId();
         switch (id){
-            /*
             case R.id.follow_button:
                 ActionProcessButton follow_button = (ActionProcessButton) view;
                 User user = (User) follow_button.getTag();
-                String user_id = user.getUser_id();
-                if(user.isFollowed()){
-                    firebaseUserHelper.getDatabaseReference().child("user/"+user_id).child("follower/"+ Constant.getSharedPreference(context).getString(Constant.SP_USER_ID,"")).removeValue();
-                    firebaseUserHelper.getDatabaseReference().child("user/"+Constant.getSharedPreference(context).getString(Constant.SP_USER_ID,"")).child("following/"+user_id).removeValue();
-                    user.setFollowed(false);
+                String user_id = user.getId();
+                String owner = Constant.getSharedPreference(context).getString("id","");
+                if(user.isFollow()){
+                    firebaseUserHelper.getDatabaseReference().child("users/"+user_id).child("followers/"+owner).removeValue();
+                    firebaseUserHelper.getDatabaseReference().child("users/"+owner).child("followings/"+user_id).removeValue();
+                    user.setFollow(false);
                     follow_button.setText("Follow");
                 }else{
-                    firebaseUserHelper.getDatabaseReference().child("user/"+user_id).child("follower").child(Constant.getSharedPreference(context).getString(Constant.SP_USER_ID,"")).setValue(true);
-                    firebaseUserHelper.getDatabaseReference().child("user/"+Constant.getSharedPreference(context).getString(Constant.SP_USER_ID,"")).child("following").child(user_id).setValue(true);
-                    user.setFollowed(true);
+                    firebaseUserHelper.getDatabaseReference().child("users/"+user_id).child("followers").child(owner).setValue(true);
+                    firebaseUserHelper.getDatabaseReference().child("users/"+owner).child("followings").child(user_id).setValue(true);
+                    user.setFollow(true);
                     follow_button.setText("Unfollow");
                 }
                 break;
             case R.id.parent_card_view:
-                follow_button = (ActionProcessButton) view;
-                user = (User) follow_button.getTag();
+                CardView cardView = (CardView) view;
+                user = (User) cardView.getTag();
                 UserDetailActivity.toUserDetailActivity(context,user);
-                break;*/
+                break;
         }
     }
 }

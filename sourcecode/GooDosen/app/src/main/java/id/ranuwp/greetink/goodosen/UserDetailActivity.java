@@ -21,6 +21,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.ValueEventListener;
 import com.mikhaellopez.circularimageview.CircularImageView;
+import com.squareup.picasso.Picasso;
 
 import id.ranuwp.greetink.goodosen.model.Constant;
 import id.ranuwp.greetink.goodosen.model.User;
@@ -62,6 +63,7 @@ public class UserDetailActivity extends AppCompatActivity implements OnMapReadyC
         supportMapFragment = SupportMapFragment.newInstance();
         FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
         fragmentTransaction.add(R.id.container,supportMapFragment);
+        fragmentTransaction.commit();
         userSetup();
     }
 
@@ -72,16 +74,23 @@ public class UserDetailActivity extends AppCompatActivity implements OnMapReadyC
             public void onDataChange(DataSnapshot dataSnapshot) {
                 user.setId(id);
                 user.setName(dataSnapshot.child("name").getValue().toString());
+                name_textview.setText(user.getName());
                 user.setImage_url(dataSnapshot.child("image_url").getValue().toString());
+                Picasso.with(getApplicationContext())
+                        .load(user.getImage_url())
+                        .placeholder(R.drawable.loading_placeholder)
+                        .error(R.drawable.error_placeholder)
+                        .into(profile_image);
                 user.setFrom(dataSnapshot.child("from").getValue().toString());
+                from_textview.setText(user.getFrom());
                 user.setFollow(dataSnapshot.child("followers/"+ Constant.getSharedPreference(getApplicationContext()).getString("id","")).exists());
                 if(user.isFollow()){
                     follow_button.setText("Unfollow");
                 }else{
                     follow_button.setText("Follow");
                 }
-                double latitude = Double.parseDouble(dataSnapshot.child("lat").getValue().toString());
-                double longitude = Double.parseDouble(dataSnapshot.child("long").getValue().toString());
+                double latitude = Double.parseDouble(dataSnapshot.child("last_location/lat").getValue().toString());
+                double longitude = Double.parseDouble(dataSnapshot.child("last_location/long").getValue().toString());
                 user.setLast_location(new LatLng(latitude,longitude));
                 supportMapFragment.getMapAsync(UserDetailActivity.this);
             }
@@ -100,13 +109,13 @@ public class UserDetailActivity extends AppCompatActivity implements OnMapReadyC
     }
 
     @Override
-    public void onMapReady(final GoogleMap gmap) {
+    public void onMapReady(GoogleMap gmap) {
         this.googleMap = gmap;
         markerOptions = new MarkerOptions();
         markerOptions.position(user.getLast_location());
         CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(user.getLast_location(),13.0f);
         googleMap.moveCamera(cameraUpdate);
-        firebaseUserHelper.getDatabaseReference().child("users/"+id+"last_location").addValueEventListener(new ValueEventListener() {
+        firebaseUserHelper.getDatabaseReference().child("users/"+id+"/last_location").addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 double latitude = Double.parseDouble(dataSnapshot.child("lat").getValue().toString());
@@ -133,13 +142,13 @@ public class UserDetailActivity extends AppCompatActivity implements OnMapReadyC
                 ActionProcessButton actionProcessButton = (ActionProcessButton) view;
                 String owner = Constant.getSharedPreference(this).getString("id","");
                 if(user.isFollow()){
-                    firebaseUserHelper.getDatabaseReference().child("users/"+id+"followers"+owner).removeValue();
-                    firebaseUserHelper.getDatabaseReference().child("users/"+owner+"followings"+id).removeValue();
+                    firebaseUserHelper.getDatabaseReference().child("users/"+id+"/followers/"+owner).removeValue();
+                    firebaseUserHelper.getDatabaseReference().child("users/"+owner+"/followings/"+id).removeValue();
                     user.setFollow(false);
                     actionProcessButton.setText("Follow");
                 }else{
                     firebaseUserHelper.getDatabaseReference().child("users/"+id).child("followers").child(owner).setValue(true);
-                    firebaseUserHelper.getDatabaseReference().child("users/"+owner).child("following").child(id).setValue(true);
+                    firebaseUserHelper.getDatabaseReference().child("users/"+owner).child("followings").child(id).setValue(true);
                     user.setFollow(true);
                     actionProcessButton.setText("Unfollow");
                 }

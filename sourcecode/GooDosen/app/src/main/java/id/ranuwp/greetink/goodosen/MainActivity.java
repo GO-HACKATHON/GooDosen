@@ -54,8 +54,8 @@ public class MainActivity extends AppCompatActivity {
     private final LocationListener locationListener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {
-            firebaseUserHelper.getDatabaseReference().child("users/" + id + "last_location/lat").setValue(location.getLatitude());
-            firebaseUserHelper.getDatabaseReference().child("users/" + id + "last_location/long").setValue(location.getLongitude());
+            firebaseUserHelper.getDatabaseReference().child("users/" + id + "/last_location/lat").setValue(location.getLatitude());
+            firebaseUserHelper.getDatabaseReference().child("users/" + id + "/last_location/long").setValue(location.getLongitude());
         }
 
         @Override
@@ -263,10 +263,10 @@ public class MainActivity extends AppCompatActivity {
 
                                                         }
                                                     });
+
                                         }
                                         models.get(position).setBadgeTitle(String.valueOf(users.size()));
                                         models.get(position).showBadge();
-                                        userAdapter.notifyDataSetChanged();
                                     }
 
                                     @Override
@@ -348,7 +348,7 @@ public class MainActivity extends AppCompatActivity {
                 return view;
             }
         });
-        navigarion_bar.setViewPager(viewpager);
+        navigarion_bar.setViewPager(viewpager,1);
     }
 
     public static void toMainActivity(Activity activity){

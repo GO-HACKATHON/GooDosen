@@ -7,15 +7,23 @@ import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.arlib.floatingsearchview.FloatingSearchView;
+import com.arlib.floatingsearchview.suggestions.SearchSuggestionsAdapter;
+import com.arlib.floatingsearchview.suggestions.model.SearchSuggestion;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 import com.mikhaellopez.circularimageview.CircularImageView;
 import com.squareup.picasso.Picasso;
@@ -23,22 +31,28 @@ import com.squareup.picasso.Picasso;
 import java.util.ArrayList;
 
 import devlight.io.library.ntb.NavigationTabBar;
+import id.ranuwp.greetink.goodosen.adapter.ChatAdapter;
+import id.ranuwp.greetink.goodosen.adapter.UserAdapter;
 import id.ranuwp.greetink.goodosen.model.Constant;
 import id.ranuwp.greetink.goodosen.model.User;
 import id.ranuwp.greetink.goodosen.model.Chat;
 import id.ranuwp.greetink.goodosen.model.helper.FirebaseUserHelper;
+import id.ranuwp.greetink.goodosen.model.helper.UserSuggestion;
 
 public class MainActivity extends AppCompatActivity {
 
     //view
     private NavigationTabBar navigarion_bar;
     private ViewPager viewpager;
+    private FloatingSearchView floating_search_view;
 
     //var
     private FirebaseUserHelper firebaseUserHelper;
     private ArrayList<NavigationTabBar.Model> models;
     private ArrayList<User> users;
     private ArrayList<Chat> chats;
+    private UserAdapter userAdapter;
+    private ChatAdapter chatAdapter;
     private String id;
 
     @Override
@@ -109,27 +123,28 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public Object instantiateItem(ViewGroup container, int position) {
+            public Object instantiateItem(ViewGroup container, final int position) {
                 View view = new View(getApplicationContext());
                 switch (position){
                     case 0 :
                         view = LayoutInflater.from(getBaseContext()).inflate(R.layout.tab_profile, null, false);
-                        CircularImageView profile_image = (CircularImageView) view.findViewById(R.id.profile_image);
-                        Picasso.with(getApplicationContext())
-                                .load("https://graph.facebook.com/"+ id +"/picture?type=large")
-                                .placeholder(R.drawable.loading_placeholder)
-                                .error(R.drawable.error_placeholder)
-                                .into(profile_image);
+                        final CircularImageView profile_image = (CircularImageView) view.findViewById(R.id.profile_image);
                         TextView logout_textview = (TextView) view.findViewById(R.id.logout_textview);
                         final TextView name_textview = (TextView) view.findViewById(R.id.name_textview);
                         final TextView from_textview = (TextView) view.findViewById(R.id.from_textview);
-                        firebaseUserHelper.getDatabaseReference().child("user/"+ id).addValueEventListener(new ValueEventListener() {
+                        firebaseUserHelper.getDatabaseReference().child("users/"+ id).addValueEventListener(new ValueEventListener() {
                             @Override
                             public void onDataChange(DataSnapshot dataSnapshot) {
                                 String name = dataSnapshot.child("name").getValue().toString();
                                 String from = dataSnapshot.child("from").getValue().toString();
+                                String image_url = dataSnapshot.child("image_url").getValue().toString();
                                 name_textview.setText(name);
                                 from_textview.setText(from);
+                                Picasso.with(getApplicationContext())
+                                        .load(image_url)
+                                        .placeholder(R.drawable.loading_placeholder)
+                                        .error(R.drawable.error_placeholder)
+                                        .into(profile_image);
                             }
 
                             @Override
@@ -145,12 +160,167 @@ public class MainActivity extends AppCompatActivity {
                                 finish();
                             }
                         });
+                        //Followers RecycleView
+                        RecyclerView followers_recyclerview = (RecyclerView) view.findViewById(R.id.followers_recyclerview);
+                        LinearLayoutManager followersLinearLayoutManager = new LinearLayoutManager(getApplicationContext());
+                        followers_recyclerview.setLayoutManager(followersLinearLayoutManager);
+                        users = new ArrayList<>();
+                        userAdapter = new UserAdapter(MainActivity.this, users);
+                        firebaseUserHelper.getDatabaseReference()
+                                .child("users/"+id+"/followers")
+                                .addValueEventListener(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(DataSnapshot dataSnapshot) {
+                                        users.clear();
+                                        for(final DataSnapshot data : dataSnapshot.getChildren()){
+                                            final User user = new User();
+                                            user.setId(data.getKey());
+                                            firebaseUserHelper.getDatabaseReference().child("users/"+ user.getId())
+                                                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                                                        @Override
+                                                        public void onDataChange(DataSnapshot dataSnapshot) {
+                                                            user.setName(dataSnapshot.child("name").getValue().toString());
+                                                            user.setFrom(dataSnapshot.child("from").getValue().toString());
+                                                            user.setImage_url(dataSnapshot.child("image_url").getValue().toString());
+                                                            user.setFollow(dataSnapshot.child("followings").child(id).exists());
+                                                            users.add(user);
+                                                            userAdapter.notifyDataSetChanged();
+                                                        }
+
+                                                        @Override
+                                                        public void onCancelled(DatabaseError databaseError) {
+
+                                                        }
+                                                    });
+                                        }
+                                        models.get(position).setBadgeTitle(String.valueOf(users.size()));
+                                        models.get(position).showBadge();
+                                        userAdapter.notifyDataSetChanged();
+                                    }
+
+                                    @Override
+                                    public void onCancelled(DatabaseError databaseError) {
+
+                                    }
+                                });
+                        followers_recyclerview.setAdapter(userAdapter);
                         break;
                     case 1 :
                         view = LayoutInflater.from(getBaseContext()).inflate(R.layout.tab_chat, null, false);
                         break;
                     case 2 :
                         view = LayoutInflater.from(getBaseContext()).inflate(R.layout.tab_search, null, false);
+                        //Following RecyclerView
+                        RecyclerView following_recyclerview = (RecyclerView) view.findViewById(R.id.following_recyclerview);
+                        LinearLayoutManager followingLinearLayoutManager = new LinearLayoutManager(getApplicationContext());
+                        following_recyclerview.setLayoutManager(followingLinearLayoutManager);
+                        users = new ArrayList<>();
+                        userAdapter = new UserAdapter(MainActivity.this, users);
+                        firebaseUserHelper.getDatabaseReference()
+                                .child("users/"+id+"/followings")
+                                .addValueEventListener(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(DataSnapshot dataSnapshot) {
+                                        users.clear();
+                                        for(final DataSnapshot data : dataSnapshot.getChildren()){
+                                            final User user = new User();
+                                            user.setId(data.getKey());
+                                            firebaseUserHelper.getDatabaseReference().child("users/"+ user.getId())
+                                                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                                                        @Override
+                                                        public void onDataChange(DataSnapshot dataSnapshot) {
+                                                            user.setName(dataSnapshot.child("name").getValue().toString());
+                                                            user.setFrom(dataSnapshot.child("from").getValue().toString());
+                                                            user.setFollow(dataSnapshot.child("followers").child(id).exists());
+                                                            user.setImage_url(dataSnapshot.child("image_url").getValue().toString());
+                                                            users.add(user);
+                                                            userAdapter.notifyDataSetChanged();
+                                                        }
+
+                                                        @Override
+                                                        public void onCancelled(DatabaseError databaseError) {
+
+                                                        }
+                                                    });
+                                        }
+                                        models.get(position).setBadgeTitle(String.valueOf(users.size()));
+                                        models.get(position).showBadge();
+                                        userAdapter.notifyDataSetChanged();
+                                    }
+
+                                    @Override
+                                    public void onCancelled(DatabaseError databaseError) {
+
+                                    }
+                                });
+                        following_recyclerview.setAdapter(userAdapter);
+                        //Floating SearchView
+                        floating_search_view = (FloatingSearchView) view.findViewById(R.id.floating_search_view);
+                        floating_search_view.setOnSearchListener(new FloatingSearchView.OnSearchListener() {
+                            @Override
+                            public void onSuggestionClicked(SearchSuggestion searchSuggestion) {
+                                UserSuggestion userSuggestion = (UserSuggestion) searchSuggestion;
+                                Intent intent = new Intent(MainActivity.this, UserDetailActivity.class);
+                                intent.putExtra("id",userSuggestion.getUser().getId());
+                                floating_search_view.hideProgress();
+                                startActivity(intent);
+                            }
+
+                            @Override
+                            public void onSearchAction(String currentQuery) {
+                                floating_search_view.hideProgress();
+                            }
+                        });
+                        floating_search_view.setOnQueryChangeListener(new FloatingSearchView.OnQueryChangeListener() {
+                                                                          @Override
+                                                                          public void onSearchTextChanged(String oldQuery, final String newQuery) {
+                                                                              if (oldQuery.equals("") || newQuery.equals("")) {
+                                                                                  floating_search_view.clearSuggestions();
+                                                                              } else {
+                                                                                  floating_search_view.showProgress();
+                                                                                  Query query = firebaseUserHelper.getDatabaseReference().child("users").orderByChild("name");
+                                                                                  query.addListenerForSingleValueEvent(new ValueEventListener() {
+                                                                                      @Override
+                                                                                      public void onDataChange(DataSnapshot dataSnapshot) {
+                                                                                          ArrayList<SearchSuggestion> searchSuggestions = new ArrayList<>();
+                                                                                          for(DataSnapshot user_data : dataSnapshot.getChildren()){
+                                                                                              if(!user_data.getKey().equals(id) && user_data.child("name").getValue().toString().toLowerCase().startsWith(newQuery.toLowerCase())){
+                                                                                                  User user = new User();
+                                                                                                  user.setName(user_data.child("name").getValue().toString());
+                                                                                                  user.setImage_url(user_data.child("image_url").getValue().toString());
+                                                                                                  user.setId(user_data.getKey());
+                                                                                                  user.setFrom(user_data.child("from").getValue().toString());
+                                                                                                  user.setFollow(user_data.child("follower").child(id).exists());
+                                                                                                  UserSuggestion userSuggestion = new UserSuggestion(user);
+                                                                                                  searchSuggestions.add(userSuggestion);
+                                                                                              }
+                                                                                          }
+                                                                                          floating_search_view.hideProgress();
+                                                                                          floating_search_view.swapSuggestions(searchSuggestions);
+                                                                                      }
+
+                                                                                      @Override
+                                                                                      public void onCancelled(DatabaseError databaseError) {
+                                                                                          floating_search_view.hideProgress();
+                                                                                      }
+                                                                                  });
+                                                                              }
+                                                                          }
+                                                                      }
+                        );
+                        floating_search_view.setOnBindSuggestionCallback(new SearchSuggestionsAdapter.OnBindSuggestionCallback() {
+                            @Override
+                            public void onBindSuggestion(View suggestionView, ImageView leftIcon, TextView textView, SearchSuggestion item, int itemPosition) {
+                                UserSuggestion userSuggestion = (UserSuggestion) item;
+                                User user = userSuggestion.getUser();
+                                textView.setText(user.getName()+"\n\n"+user.getFrom());
+                                Picasso.with(getApplicationContext())
+                                        .load(user.getImage_url())
+                                        .placeholder(R.drawable.loading_placeholder)
+                                        .error(R.drawable.error_placeholder)
+                                        .into(leftIcon);
+                            }
+                        });
                         break;
                 }
                 container.addView(view);

@@ -12,6 +12,7 @@ import com.squareup.picasso.Picasso;
 import java.util.List;
 
 import id.ranuwp.greetink.goodosen.R;
+import id.ranuwp.greetink.goodosen.UserDetailActivity;
 import id.ranuwp.greetink.goodosen.model.User;
 import id.ranuwp.greetink.goodosen.model.helper.FirebaseUserHelper;
 import id.ranuwp.greetink.goodosen.viewholder.UserViewHolder;
@@ -67,8 +68,8 @@ public class UserAdapter extends RecyclerView.Adapter<UserViewHolder> implements
     public void onClick(View view) {
         int id = view.getId();
         switch (id){
+            /*
             case R.id.follow_button:
-                /*
                 ActionProcessButton follow_button = (ActionProcessButton) view;
                 User user = (User) follow_button.getTag();
                 String user_id = user.getUser_id();

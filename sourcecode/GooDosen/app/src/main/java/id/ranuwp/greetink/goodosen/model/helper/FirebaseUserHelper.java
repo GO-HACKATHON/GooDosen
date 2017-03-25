@@ -37,12 +37,8 @@ public class FirebaseUserHelper {
     }
 
     public void signOut(){
-        firebaseAuth.signOut();
         LoginManager.getInstance().logOut();
-    }
-
-    public boolean isEmailVerified(){
-        return firebaseAuth.getCurrentUser().isEmailVerified();
+        firebaseAuth.signOut();
     }
 
     public FirebaseAuth getFirebaseAuth() {
@@ -69,7 +65,7 @@ public class FirebaseUserHelper {
 
     public StorageReference getStorageReference() {
         firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
-        return storageReference.child("user/"+firebaseUser.getUid()+"/data_result");
+        return storageReference.child("user/"+firebaseUser.getUid());
     }
 
     public FirebaseAuth.AuthStateListener getAuthStateListener() {

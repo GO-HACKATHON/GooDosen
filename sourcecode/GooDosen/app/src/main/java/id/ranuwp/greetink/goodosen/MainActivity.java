@@ -1,6 +1,7 @@
 package id.ranuwp.greetink.goodosen;
 
 import android.app.Activity;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -9,6 +10,7 @@ import android.location.LocationManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -16,6 +18,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -50,7 +53,8 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<NavigationTabBar.Model> models;
     private ArrayList<User> followersUser;
     private ArrayList<User> followingUser;
-    private UserAdapter userAdapter;
+    private UserAdapter followerUserAdapter;
+    private UserAdapter followingUserAdapter;
     private String id;
     private final LocationListener locationListener = new LocationListener() {
         @Override
@@ -82,11 +86,51 @@ public class MainActivity extends AppCompatActivity {
         if (!firebaseUserHelper.isLogin()) {
             LoginActivity.toLoginActivity(this);
             finish();
+            return;
         }
         id = Constant.getSharedPreference(MainActivity.this).getString("id", "");
+        firebaseUserHelper.getDatabaseReference().child("users").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(dataSnapshot.child(id+"/from").exists()){
+                    locationTracker();
+                    setContentView(R.layout.activity_main);
+                    viewSetup();
+                }else{
+                    AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                    AlertDialog dialog = builder.create();
+                    View view = LayoutInflater.from(MainActivity.this).inflate(R.layout.from_dialog,null,false);
+                    final EditText from_edittext = (EditText) view.findViewById(R.id.from_edit_text);
+                    dialog.setButton(DialogInterface.BUTTON_POSITIVE,"Save", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            String from = from_edittext.getText().toString();
+                            firebaseUserHelper.getDatabaseReference().child("users/"+id+"/from").setValue(from);
+                            firebaseUserHelper.getDatabaseReference().child("users/"+id+"/last_location/lat").setValue(0.0);
+                            firebaseUserHelper.getDatabaseReference().child("users/"+id+"/last_location/long").setValue(0.0);
+                            locationTracker();
+                            setContentView(R.layout.activity_main);
+                            viewSetup();
+                        }
+                    });
+                    dialog.setView(view);
+                    dialog.setCancelable(false);
+                    dialog.setCanceledOnTouchOutside(false);
+                    dialog.show();
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
         locationTracker();
-        setContentView(R.layout.activity_main);
-        viewSetup();
     }
 
     private void locationTracker() {
@@ -115,13 +159,6 @@ public class MainActivity extends AppCompatActivity {
         );
         models.add(
                 new NavigationTabBar.Model.Builder(
-                        getResources().getDrawable(R.drawable.ic_chat),
-                        selected_color)
-                        .title("Chat")
-                        .build()
-        );
-        models.add(
-                new NavigationTabBar.Model.Builder(
                         getResources().getDrawable(R.drawable.ic_search),
                         selected_color)
                         .title("Search")
@@ -131,7 +168,7 @@ public class MainActivity extends AppCompatActivity {
         viewpager.setAdapter(new PagerAdapter() {
             @Override
             public int getCount() {
-                return 3;
+                return 2;
             }
 
             @Override
@@ -158,10 +195,14 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void onDataChange(DataSnapshot dataSnapshot) {
                                 String name = dataSnapshot.child("name").getValue().toString();
-                                String from = dataSnapshot.child("from").getValue().toString();
+                                if(dataSnapshot.child("from").exists()){
+                                    String from = dataSnapshot.child("from").getValue().toString();
+                                    from_textview.setText(from);
+                                }else{
+                                    from_textview.setText("Not Difined");
+                                }
                                 String image_url = dataSnapshot.child("image_url").getValue().toString();
                                 name_textview.setText(name);
-                                from_textview.setText(from);
                                 Picasso.with(getApplicationContext())
                                         .load(image_url)
                                         .placeholder(R.drawable.loading_placeholder)
@@ -187,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
                         LinearLayoutManager followersLinearLayoutManager = new LinearLayoutManager(getApplicationContext());
                         followers_recyclerview.setLayoutManager(followersLinearLayoutManager);
                         followersUser = new ArrayList<>();
-                        userAdapter = new UserAdapter(MainActivity.this, followersUser);
+                        followerUserAdapter = new UserAdapter(MainActivity.this, followersUser);
                         firebaseUserHelper.getDatabaseReference()
                                 .child("users/"+id+"/followers")
                                 .addValueEventListener(new ValueEventListener() {
@@ -208,7 +249,7 @@ public class MainActivity extends AppCompatActivity {
                                                             followersUser.add(user);
                                                             models.get(position).setBadgeTitle(String.valueOf(followersUser.size()));
                                                             models.get(position).showBadge();
-                                                            userAdapter.notifyDataSetChanged();
+                                                            followerUserAdapter.notifyDataSetChanged();
                                                         }
 
                                                         @Override
@@ -217,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
                                                         }
                                                     });
                                         }
-                                        userAdapter.notifyDataSetChanged();
+                                        followerUserAdapter.notifyDataSetChanged();
                                     }
 
                                     @Override
@@ -225,19 +266,16 @@ public class MainActivity extends AppCompatActivity {
 
                                     }
                                 });
-                        followers_recyclerview.setAdapter(userAdapter);
+                        followers_recyclerview.setAdapter(followerUserAdapter);
                         break;
                     case 1 :
-                        view = LayoutInflater.from(getBaseContext()).inflate(R.layout.tab_chat, null, false);
-                        break;
-                    case 2 :
                         view = LayoutInflater.from(getBaseContext()).inflate(R.layout.tab_search, null, false);
                         //Following RecyclerView
                         RecyclerView following_recyclerview = (RecyclerView) view.findViewById(R.id.following_recyclerview);
                         LinearLayoutManager followingLinearLayoutManager = new LinearLayoutManager(getApplicationContext());
                         following_recyclerview.setLayoutManager(followingLinearLayoutManager);
                         followingUser = new ArrayList<>();
-                        userAdapter = new UserAdapter(MainActivity.this, followingUser);
+                        followingUserAdapter = new UserAdapter(MainActivity.this, followingUser);
                         firebaseUserHelper.getDatabaseReference()
                                 .child("users/"+id+"/followings")
                                 .addValueEventListener(new ValueEventListener() {
@@ -258,7 +296,7 @@ public class MainActivity extends AppCompatActivity {
                                                             followingUser.add(user);
                                                             models.get(position).setBadgeTitle(String.valueOf(followingUser.size()));
                                                             models.get(position).showBadge();
-                                                            userAdapter.notifyDataSetChanged();
+                                                            followingUserAdapter.notifyDataSetChanged();
                                                         }
 
                                                         @Override
@@ -268,7 +306,7 @@ public class MainActivity extends AppCompatActivity {
                                                     });
 
                                         }
-                                        notifyDataSetChanged();
+                                        followingUserAdapter.notifyDataSetChanged();
                                     }
 
                                     @Override
@@ -276,7 +314,7 @@ public class MainActivity extends AppCompatActivity {
 
                                     }
                                 });
-                        following_recyclerview.setAdapter(userAdapter);
+                        following_recyclerview.setAdapter(followingUserAdapter);
                         //Floating SearchView
                         floating_search_view = (FloatingSearchView) view.findViewById(R.id.floating_search_view);
                         floating_search_view.setOnSearchListener(new FloatingSearchView.OnSearchListener() {
@@ -350,7 +388,7 @@ public class MainActivity extends AppCompatActivity {
                 return view;
             }
         });
-        navigarion_bar.setViewPager(viewpager,1);
+        navigarion_bar.setViewPager(viewpager,0);
     }
 
     public static void toMainActivity(Activity activity){

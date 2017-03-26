@@ -27,6 +27,9 @@ import com.google.firebase.auth.FacebookAuthCredential;
 import com.google.firebase.auth.FacebookAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.ValueEventListener;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -67,8 +70,8 @@ public class LoginActivity extends AppCompatActivity {
         super.onStop();
     }
 
-    public static void toLoginActivity(Activity activity){
-        activity.startActivity(new Intent(activity.getApplicationContext(),LoginActivity.class));
+    public static void toLoginActivity(Activity activity) {
+        activity.startActivity(new Intent(activity.getApplicationContext(), LoginActivity.class));
     }
 
     private void viewSetup() {
@@ -77,7 +80,7 @@ public class LoginActivity extends AppCompatActivity {
         //Facebook Login Button
         facebook_loginbutton = (LoginButton) findViewById(R.id.facebook_loginbutton);
         callbackManager = CallbackManager.Factory.create();
-        facebook_loginbutton.setReadPermissions("email","public_profile");
+        facebook_loginbutton.setReadPermissions("email", "public_profile");
         facebook_loginbutton.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
             @Override
             public void onSuccess(LoginResult loginResult) {
@@ -89,36 +92,59 @@ public class LoginActivity extends AppCompatActivity {
                         new GraphRequest.GraphJSONObjectCallback() {
                             @Override
                             public void onCompleted(JSONObject object, GraphResponse response) {
-                                    final JSONObject objects = object;
-                                    firebaseUserHelper.getFirebaseAuth().signInWithCredential(credential).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                                        @Override
-                                        public void onComplete(@NonNull Task<AuthResult> task) {
-                                            if(!task.isSuccessful()){
-                                                try {
-                                                    String id = objects.getString("id");
-                                                    String name = objects.getString("name");
-                                                    String image_url = "https://graph.facebook.com/"+id+"/picture?type=large";
-                                                    Map<String,String> user = new HashMap<>();
-                                                    user.put("name",name);
-                                                    user.put("from","Universitas Diponegoro");
-                                                    user.put("image_url",image_url);
-                                                    firebaseUserHelper.getDatabaseReference().child("users").child(id).setValue(user);
-                                                    Constant.getSharedPreference(getApplicationContext())
-                                                            .edit()
-                                                            .putString("id",id)
-                                                            .apply();
-                                                    MainActivity.toMainActivity(LoginActivity.this);
-                                                    finish();
-                                                } catch (JSONException e) {
-                                                    e.printStackTrace();
-                                                }
-                                            }else{
-                                                Toast.makeText(getApplicationContext(),"Failed to Login",Toast.LENGTH_SHORT).show();
-                                                progressbar.setVisibility(View.GONE);
-                                                facebook_loginbutton.setVisibility(View.VISIBLE);
+                                final JSONObject objects = object;
+                                firebaseUserHelper.getFirebaseAuth().signInWithCredential(credential).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<AuthResult> task) {
+                                        if (!task.isSuccessful()) {
+                                            try {
+                                                final String id = objects.getString("id");
+                                                firebaseUserHelper.getDatabaseReference().child("users").addListenerForSingleValueEvent(new ValueEventListener() {
+                                                    @Override
+                                                    public void onDataChange(DataSnapshot dataSnapshot) {
+                                                        if (!dataSnapshot.child(id).exists()) {
+                                                            String name = null;
+                                                            try {
+                                                                name = objects.getString("name");
+                                                            } catch (JSONException e) {
+                                                                e.printStackTrace();
+                                                            }
+                                                            String image_url = "https://graph.facebook.com/" + id + "/picture?type=large";
+                                                            Map<String, String> user = new HashMap<>();
+                                                            user.put("name", name);
+                                                            user.put("image_url", image_url);
+                                                            firebaseUserHelper.getDatabaseReference().child("users").child(id).setValue(user);
+                                                            Constant.getSharedPreference(getApplicationContext())
+                                                                    .edit()
+                                                                    .putString("id", id)
+                                                                    .apply();
+                                                            MainActivity.toMainActivity(LoginActivity.this);
+                                                            finish();
+                                                        }else{
+                                                            Constant.getSharedPreference(getApplicationContext())
+                                                                    .edit()
+                                                                    .putString("id", id)
+                                                                    .apply();
+                                                            MainActivity.toMainActivity(LoginActivity.this);
+                                                            finish();
+                                                        }
+                                                    }
+
+                                                    @Override
+                                                    public void onCancelled(DatabaseError databaseError) {
+
+                                                    }
+                                                });
+                                            } catch (JSONException e) {
+                                                e.printStackTrace();
                                             }
+                                        } else {
+                                            Toast.makeText(getApplicationContext(), "Failed to Login", Toast.LENGTH_SHORT).show();
+                                            progressbar.setVisibility(View.GONE);
+                                            facebook_loginbutton.setVisibility(View.VISIBLE);
                                         }
-                                    });
+                                    }
+                                });
                             }
                         });
                 request.executeAsync();
@@ -126,14 +152,14 @@ public class LoginActivity extends AppCompatActivity {
 
             @Override
             public void onCancel() {
-                Toast.makeText(getApplicationContext(),"Canceled",Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Canceled", Toast.LENGTH_SHORT).show();
                 progressbar.setVisibility(View.GONE);
                 facebook_loginbutton.setVisibility(View.VISIBLE);
             }
 
             @Override
             public void onError(FacebookException error) {
-                Toast.makeText(getApplicationContext(),"Error",Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Error", Toast.LENGTH_SHORT).show();
                 progressbar.setVisibility(View.GONE);
                 facebook_loginbutton.setVisibility(View.VISIBLE);
             }
@@ -144,6 +170,6 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        callbackManager.onActivityResult(requestCode,resultCode,data);
+        callbackManager.onActivityResult(requestCode, resultCode, data);
     }
 }
